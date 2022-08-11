@@ -12,6 +12,16 @@ using secret_key_t = std::array<uint8_t, CRYPTO_SECRETKEYBYTES>;
 using encrypted_skey_t = std::array<uint8_t, CRYPTO_CIPHERTEXTBYTES>;
 using plain_skey_t = std::array<uint8_t, CRYPTO_BYTES>;
 
+class AutoCloser
+{
+public:
+    AutoCloser(int& fd);
+    ~AutoCloser();
+
+private:
+    int& fd_;
+};
+
 void do_mlockall();
 void full_read(const int fd, void* buf, const size_t count);
 void full_write(const int fd, const void* buf, const size_t count);

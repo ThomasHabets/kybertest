@@ -287,3 +287,12 @@ void full_read(const int fd, void* buf, const size_t count)
         p += rc;
     }
 }
+
+AutoCloser::AutoCloser(int& fd) : fd_(fd) {}
+AutoCloser::~AutoCloser()
+{
+    if (fd_ != -1) {
+        close(fd_);
+        fd_ = -1;
+    }
+}

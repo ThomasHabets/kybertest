@@ -1,11 +1,15 @@
 #include "kybtestlib.h"
 
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <array>
 #include <fstream>
 #include <iostream>
 
 namespace {
+
 void usage(const char* av0, int err)
 {
     auto o = (err == EXIT_SUCCESS) ? &std::cout : &std::cerr;
@@ -14,14 +18,21 @@ void usage(const char* av0, int err)
     exit(err);
 }
 
-void write_file(const std::string& fn, const std::string& content)
+void write_file(const std::string& fn, const std::string& content, int mode)
 {
-    std::ofstream t(fn);
-    t << content;
-    if (!t.good()) {
+    int fd = open(fn.c_str(), O_CREAT | O_EXCL | O_WRONLY, mode);
+    if (-1 == fd) {
         throw std::system_error(
-            errno, std::generic_category(), "ofstream write");
+            errno, std::generic_category(), "open(" + fn + ")");
     }
+    AutoCloser cfd(fd);
+
+    full_write(fd, content.data(), content.size());
+    if (-1 == close(fd)) {
+        throw std::system_error(
+            errno, std::generic_category(), "close(" + fn + ")");
+    }
+    fd = -1;
 }
 
 std::string make_header_pub() { return "KYBPUB00"; }
@@ -65,14 +76,15 @@ int mainwrap(int argc, char** argv)
         return 1;
     }
     write_file(outbase + ".pub",
-               make_header_pub() + std::string(pk.begin(), pk.end()));
+               make_header_pub() + std::string(pk.begin(), pk.end()),
+               0644);
     std::string head = make_header_priv_unencrypted();
     std::string data = std::string(sk.begin(), sk.end());
     if (encrypt) {
         head = make_header_priv();
         data = encrypt_openssl(data);
     }
-    write_file(outbase + ".priv", head + data);
+    write_file(outbase + ".priv", head + data, 0600);
     return 0;
 }
 } // namespace

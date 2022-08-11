@@ -20,6 +20,7 @@ secret_key_t read_priv_key(const std::string& fn)
         throw std::system_error(
             errno, std::generic_category(), "open(" + fn + ")");
     }
+    AutoCloser cfd(fd);
 
     std::vector<char> h(8);
     full_read(fd, h.data(), h.size());
