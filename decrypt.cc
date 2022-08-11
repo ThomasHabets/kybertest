@@ -1,70 +1,102 @@
-#include<unistd.h>
-#include<fstream>
-#include<iostream>
-#include<array>
-#include<sstream>
-#include<cassert>
-#include"misc.h"
+#include <unistd.h>
+#include <array>
+#include <cassert>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <vector>
 
-std::string read_file(const std::string&fn)
+#include "kybtestlib.h"
+
+namespace {
+
+void full_read(const int fd, void* buf, const size_t count)
 {
-  std::ifstream t(fn);
-  std::stringstream buf;
-  buf << t.rdbuf();
-  return buf.str();
+    auto p = reinterpret_cast<char*>(buf);
+    ssize_t left = count;
+    for (;;) {
+        const auto rc = read(fd, p, left);
+        if (rc == left) {
+            return;
+        }
+        if (rc == -1) {
+            throw std::system_error(errno, std::generic_category(), "read()");
+        }
+        if (rc == 0) {
+            throw std::runtime_error("read() eof");
+        }
+        left -= rc;
+        p += rc;
+    }
 }
 
-int main()
+std::pair<std::string, encrypted_skey_t> read_header(int fd)
 {
-  std::cerr << "Decrypt\n";
-  const auto sk = read_file("key.priv");
-  assert(sk.size() == CRYPTO_SECRETKEYBYTES);
+    std::vector<char> h(8);
+    full_read(fd, h.data(), h.size());
 
-  std::array<uint8_t, CRYPTO_CIPHERTEXTBYTES> ct;
-  if (ct.size() != read(STDIN_FILENO, ct.data(), ct.size())) {
-    std::cerr << "Failed to read silly header\n";
-    return 1;
-  }
+    encrypted_skey_t ct;
+    full_read(fd, ct.data(), ct.size());
+    return { std::string(h.begin(), h.end()), ct };
+}
 
-  std::array<uint8_t, CRYPTO_BYTES> pt;
-  if (crypto_kem_dec(
-			      pt.data(),
-			      reinterpret_cast<const uint8_t*>(ct.data()),
-			      reinterpret_cast<const uint8_t*>(sk.data()))) {
-    std::cerr << "Failed decryption\n";
-    return 1;
-  }
+void usage(const char* av0, int err)
+{
+    auto o = (err == EXIT_SUCCESS) ? &std::cout : &std::cerr;
+    *o << "Usage: " << av0 << " [ -h ] -k <keyfile>\n";
+    exit(err);
+}
 
-  int fds[2];
-  if (pipe(fds)) {
-    perror("pipe()");
-    return 1;
-  }
-
-  const auto pid = fork();
-  if (pid == -1) {
-    perror("fork()");
-    return 1;
-  }
-  if (!pid) {
-    close(fds[0]);
-    close(STDOUT_FILENO);
-    auto p = pt.data();
-    auto len = pt.size();
-    for (;;) {
-      const auto rc = write(fds[1], p, len);
-      if (rc == len) {
-	exit(EXIT_SUCCESS);
-      }
-      if (rc == -1) {
-	perror("write()");
-	exit(EXIT_FAILURE);
-      }
-      len -= rc;
-      p += rc;
+int mainwrap(int argc, char** argv)
+{
+    do_mlockall();
+    std::string privfn;
+    {
+        int opt;
+        while ((opt = getopt(argc, argv, "hk:")) != -1) {
+            switch (opt) {
+            case 'h':
+                usage(argv[0], EXIT_SUCCESS);
+            case 'k':
+                privfn = optarg;
+                break;
+            default:
+                usage(argv[0], EXIT_FAILURE);
+            }
+        }
     }
-  }
-  close(fds[1]);
-  const auto keyfile = "/dev/fd/" + std::to_string(fds[0]);
-  execlp("openssl", "aes-256-cbc", "-d", "-kfile", keyfile.c_str(), NULL);
+
+    if (privfn.empty()) {
+        std::cerr << "-k (recipient privkey) is mandatory\n";
+        return EXIT_FAILURE;
+    }
+
+    const auto sk = read_file(privfn);
+    if (sk.size() != CRYPTO_SECRETKEYBYTES) {
+        std::cerr << "Priv file has wrong size. Want " << CRYPTO_SECRETKEYBYTES
+                  << " got " << sk.size() << "\n";
+        return EXIT_FAILURE;
+    }
+
+    const auto [head, ct] = read_header(STDIN_FILENO);
+
+    plain_skey_t pt;
+    if (crypto_kem_dec(pt.data(),
+                       reinterpret_cast<const uint8_t*>(ct.data()),
+                       reinterpret_cast<const uint8_t*>(sk.data()))) {
+        std::cerr << "Failed decryption\n";
+        return 1;
+    }
+    run_openssl({ "aes-256-cbc", "-d", "-pbkdf2" }, pt);
+    return 0;
+}
+} // namespace
+
+int main(int argc, char** argv)
+{
+    try {
+        return mainwrap(argc, argv);
+    } catch (const std::exception& e) {
+        std::cerr << "Exception: " << e.what() << "\n";
+    }
 }

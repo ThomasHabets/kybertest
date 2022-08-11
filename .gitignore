@@ -1,3 +1,6 @@
 *~
 *.pub
 *.priv
+decrypt
+encrypt
+keygen

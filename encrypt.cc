@@ -1,68 +1,82 @@
-#include <unistd.h>
-#include<fstream>
-#include<iostream>
-#include<array>
-#include<sstream>
-#include<cassert>
-#include"misc.h"
+/**
+ * Encrypt
+ */
+#include "kybtestlib.h"
 
-std::string read_file(const std::string&fn)
+#include <unistd.h>
+#include <array>
+#include <cassert>
+#include <cerrno>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <vector>
+
+namespace {
+void write_header(int fd, const encrypted_skey_t& key)
 {
-  std::ifstream t(fn);
-  std::stringstream buf;
-  buf << t.rdbuf();
-  return buf.str();
+    const std::string head = "KYBTEST0";
+    full_write(fd, head.data(), head.size());
+    full_write(fd, key.data(), key.size());
 }
 
-int main()
+void usage(const char* av0, int err)
 {
-  const auto pk = read_file("key.pub");
-  assert(pk.size() == CRYPTO_PUBLICKEYBYTES);
+    auto o = (err == EXIT_SUCCESS) ? &std::cout : &std::cerr;
+    *o << "Usage: " << av0 << " [ -h ] -r <recipient pubkey file>\n";
+    exit(err);
+}
 
-  std::array<uint8_t, CRYPTO_BYTES> pt;
-  std::array<uint8_t, CRYPTO_CIPHERTEXTBYTES> ct;
-  if (crypto_kem_enc(
-					    ct.data(),
-					    (uint8_t*)pt.data(),
-					    reinterpret_cast<const uint8_t*>(pk.data()))) {
-    std::cerr << "Encryption failed\n";
-    return 1;
-  }
-  if (ct.size() != write(STDOUT_FILENO, ct.data(), ct.size())) {
-    std::cerr << "Write failed\n";
-    return 1;
-  }
-
-  int fds[2];
-  if (pipe(fds)) {
-    perror("pipe()");
-    return 1;
-  }
-
-  const auto pid = fork();
-  if (pid == -1) {
-    perror("fork()");
-    return 1;
-  }
-  if (!pid) {
-    close(fds[0]);
-    close(STDOUT_FILENO);
-    auto p = pt.data();
-    auto len = pt.size();
-    for (;;) {
-      const auto rc = write(fds[1], p, len);
-      if (rc == len) {
-	exit(EXIT_SUCCESS);
-      }
-      if (rc == -1) {
-	perror("write()");
-	exit(EXIT_FAILURE);
-      }
-      len -= rc;
-      p += rc;
+int mainwrap(int argc, char** argv)
+{
+    do_mlockall();
+    std::string pubfn;
+    {
+        int opt;
+        while ((opt = getopt(argc, argv, "hr:")) != -1) {
+            switch (opt) {
+            case 'h':
+                usage(argv[0], EXIT_SUCCESS);
+            case 'r':
+                pubfn = optarg;
+                break;
+            default:
+                usage(argv[0], EXIT_FAILURE);
+            }
+        }
     }
-  }
-  close(fds[1]);
-  const auto keyfile = "/dev/fd/" + std::to_string(fds[0]);
-  execlp("openssl", "aes-256-cbc", "-kfile", keyfile.c_str(), NULL);
+
+    if (pubfn.empty()) {
+        std::cerr << "-r (recipient pubkey) is mandatory\n";
+        return EXIT_FAILURE;
+    }
+
+    const auto pk = read_file(pubfn);
+    if (pk.size() != CRYPTO_PUBLICKEYBYTES) {
+        std::cerr << "Pubkey file has wrong size. Want "
+                  << CRYPTO_PUBLICKEYBYTES << " got " << pk.size() << "\n";
+        return EXIT_FAILURE;
+    }
+
+    plain_skey_t pt;
+    encrypted_skey_t ct;
+    if (crypto_kem_enc(ct.data(),
+                       (uint8_t*)pt.data(),
+                       reinterpret_cast<const uint8_t*>(pk.data()))) {
+        std::cerr << "Encryption of ression key failed\n";
+        return 1;
+    }
+    write_header(STDOUT_FILENO, ct);
+    run_openssl({ "aes-256-cbc", "-pbkdf2" }, pt);
+    return 0;
+}
+} // namespace
+
+int main(int argc, char** argv)
+{
+    try {
+        return mainwrap(argc, argv);
+    } catch (const std::exception& e) {
+        std::cerr << "Exception: " << e.what() << "\n";
+    }
 }
