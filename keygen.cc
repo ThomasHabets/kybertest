@@ -83,5 +83,6 @@ int main(int argc, char** argv)
         return mainwrap(argc, argv);
     } catch (const std::exception& e) {
         std::cerr << "Exception: " << e.what() << "\n";
+        exit(EXIT_FAILURE);
     }
 }
