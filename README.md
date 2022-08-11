@@ -47,3 +47,37 @@ make shared
 mkdir -p ~/opt/kyber/lib
 cp *.so ~/opt/kyber/lib
 ```
+
+## File formats
+
+### Encrypted data file format
+
+First `KYBTEST0` signifying the version 0 format.
+
+Then the encrypted AES key. The AES key is only 32 bytes, but with
+Kyber 1024 that encrypts to 1568 bytes.
+
+Then comes the payload, encrypted with the AES key, using openssl, as
+if encrypted like so:
+
+`openssl aes-256-cbc -pbkdf2 -pass pass:$(convert_to_hex $AES_KEY)`
+
+(but obviously not with key material on the command line)
+
+### Public key file format
+
+Public keys are just the header `KYBPUB00` for the version `0` format,
+followed by the raw key material.
+
+### Private key file format
+
+Private keys are either encrypted or not. If not then it's just
+`KYBPRIV0` followed by the key material, like the public keys.
+
+For encrypted private keys the header is `KYBSECe0`, followed by the
+encrypted private key. The private key is encrypted with openssl
+similar to payload, described above.
+
+`openssl aes-256-cbc -pbkdf2 -pass pass:$PASSPHRASE`
+
+(but obviously not with key material on the command line)
