@@ -3,6 +3,9 @@
  */
 #include "kybtestlib.h"
 
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <array>
 #include <cassert>
@@ -18,6 +21,24 @@ void write_header(int fd, const encrypted_skey_t& key)
     const std::string head = "KYBTEST0";
     full_write(fd, head.data(), head.size());
     full_write(fd, key.data(), key.size());
+}
+
+pubkey_t read_pub_key(const std::string& fn)
+{
+    int fd = open(fn.c_str(), O_RDONLY);
+    if (-1 == fd) {
+        throw std::system_error(
+            errno, std::generic_category(), "open(" + fn + ")");
+    }
+
+    std::vector<char> h(8);
+    full_read(fd, h.data(), h.size());
+    if (std::string(h.begin(), h.end()) != "KYBPUB00") {
+        throw std::runtime_error("pubkey has bad header");
+    }
+    pubkey_t pub;
+    full_read(fd, pub.data(), pub.size());
+    return pub;
 }
 
 void usage(const char* av0, int err)
@@ -51,13 +72,7 @@ int mainwrap(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    const auto pk = read_file(pubfn);
-    if (pk.size() != CRYPTO_PUBLICKEYBYTES) {
-        std::cerr << "Pubkey file has wrong size. Want "
-                  << CRYPTO_PUBLICKEYBYTES << " got " << pk.size() << "\n";
-        return EXIT_FAILURE;
-    }
-
+    const auto pk = read_pub_key(pubfn);
     plain_skey_t pt;
     encrypted_skey_t ct;
     if (crypto_kem_enc(ct.data(),

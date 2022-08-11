@@ -9,7 +9,8 @@ namespace {
 void usage(const char* av0, int err)
 {
     auto o = (err == EXIT_SUCCESS) ? &std::cout : &std::cerr;
-    *o << "Usage: " << av0 << " [ -h ] -o <file output base. E.g. 'key'>\n";
+    *o << "Usage: " << av0 << " [ -hP ] -o <file output base. E.g. 'key'>\n"
+       << "    -P     Store private key in plain text\n";
     exit(err);
 }
 
@@ -23,18 +24,28 @@ void write_file(const std::string& fn, const std::string& content)
     }
 }
 
+std::string make_header_pub() { return "KYBPUB00"; }
+
+std::string make_header_priv() { return "KYBSECe0"; }
+
+std::string make_header_priv_unencrypted() { return "KYBPRIV0"; }
+
 int mainwrap(int argc, char** argv)
 {
     do_mlockall();
     std::string outbase;
+    bool encrypt = true;
     {
         int opt;
-        while ((opt = getopt(argc, argv, "ho:")) != -1) {
+        while ((opt = getopt(argc, argv, "hPo:")) != -1) {
             switch (opt) {
             case 'h':
                 usage(argv[0], EXIT_SUCCESS);
             case 'o':
                 outbase = optarg;
+                break;
+            case 'P':
+                encrypt = false;
                 break;
             default:
                 usage(argv[0], EXIT_FAILURE);
@@ -53,8 +64,15 @@ int mainwrap(int argc, char** argv)
         std::cerr << "Key generation failed\n";
         return 1;
     }
-    write_file(outbase + ".pub", std::string(pk.begin(), pk.end()));
-    write_file(outbase + ".priv", std::string(sk.begin(), sk.end()));
+    write_file(outbase + ".pub",
+               make_header_pub() + std::string(pk.begin(), pk.end()));
+    std::string head = make_header_priv_unencrypted();
+    std::string data = std::string(sk.begin(), sk.end());
+    if (encrypt) {
+        head = make_header_priv();
+        data = encrypt_openssl(data);
+    }
+    write_file(outbase + ".priv", head + data);
     return 0;
 }
 } // namespace

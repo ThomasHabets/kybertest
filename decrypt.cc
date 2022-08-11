@@ -1,3 +1,6 @@
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <array>
 #include <cassert>
@@ -10,24 +13,49 @@
 
 namespace {
 
-void full_read(const int fd, void* buf, const size_t count)
+secret_key_t read_priv_key(const std::string& fn)
 {
-    auto p = reinterpret_cast<char*>(buf);
-    ssize_t left = count;
+    int fd = open(fn.c_str(), O_RDONLY);
+    if (-1 == fd) {
+        throw std::system_error(
+            errno, std::generic_category(), "open(" + fn + ")");
+    }
+
+    std::vector<char> h(8);
+    full_read(fd, h.data(), h.size());
+
+    // Check for unencrypted key.
+    if (std::string(h.begin(), h.end()) == "KYBPRIV0") {
+        secret_key_t priv;
+        full_read(fd, priv.data(), priv.size());
+        return priv;
+    }
+
+    if (std::string(h.begin(), h.end()) != "KYBSECe0") {
+        throw std::runtime_error("priv key has bad header");
+    }
+
+    std::string rest;
     for (;;) {
-        const auto rc = read(fd, p, left);
-        if (rc == left) {
-            return;
-        }
+        std::array<char, 1024> buf;
+        const auto rc = read(fd, buf.data(), buf.size());
         if (rc == -1) {
-            throw std::system_error(errno, std::generic_category(), "read()");
+            throw std::system_error(
+                errno, std::generic_category(), "read(" + fn + ")");
         }
         if (rc == 0) {
-            throw std::runtime_error("read() eof");
+            break;
         }
-        left -= rc;
-        p += rc;
+        rest += std::string(&buf[0], &buf[rc]);
     }
+
+    const auto data = decrypt_openssl(rest);
+    secret_key_t priv;
+    if (data.size() != priv.size()) {
+        throw std::runtime_error("priv key has bad size");
+    }
+    std::copy(data.begin(), data.end(), priv.begin());
+    return priv;
 }
 
 std::pair<std::string, encrypted_skey_t> read_header(int fd)
@@ -71,7 +99,7 @@ int mainwrap(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    const auto sk = read_file(privfn);
+    const auto sk = read_priv_key(privfn);
     if (sk.size() != CRYPTO_SECRETKEYBYTES) {
         std::cerr << "Priv file has wrong size. Want " << CRYPTO_SECRETKEYBYTES
                   << " got " << sk.size() << "\n";

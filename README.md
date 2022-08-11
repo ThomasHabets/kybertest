@@ -22,7 +22,6 @@ Reasons to not trust the kybertest layer:
   ciphertext will produce corrupt/interfered output. (this should be
   fixable before 1.0)
 * CBC is not the greatest mode in the first place. (also fixable)
-* Private keys are not encrypted on disk.
 * TODO: add more reasons
 
 ## Deliberate design decisions
