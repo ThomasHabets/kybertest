@@ -25,6 +25,9 @@ void full_write(const int fd, const void* buf, const size_t count)
             return;
         }
         if (rc == -1) {
+            if (errno == EINTR || errno == EAGAIN) {
+                continue;
+            }
             throw std::system_error(errno, std::generic_category(), "write()");
         }
         left -= rc;
@@ -178,6 +181,9 @@ std::string pipe_openssl(const std::vector<std::string>& args,
             return ret;
         }
         if (rc == -1) {
+            if (errno == EINTR || errno == EAGAIN) {
+                continue;
+            }
             throw std::system_error(
                 errno, std::generic_category(), "read(openssl)");
         }
@@ -278,6 +284,9 @@ void full_read(const int fd, void* buf, const size_t count)
             return;
         }
         if (rc == -1) {
+            if (errno == EINTR || errno == EAGAIN) {
+                continue;
+            }
             throw std::system_error(errno, std::generic_category(), "read()");
         }
         if (rc == 0) {
