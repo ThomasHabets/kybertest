@@ -102,20 +102,24 @@ Pipe::~Pipe() { close(); }
 class Subprocess
 {
 public:
-    Subprocess(std::function<void()>);
+    Subprocess(std::string name, std::function<void()>);
     ~Subprocess();
 
     Pipe& stdin() { return stdin_; }
     Pipe& stdout() { return stdout_; }
+    bool wait();
 
 private:
+    const std::string name_;
+    bool waited_ = false;
     Pipe stdin_;
     Pipe stdout_;
     std::function<void()> cb_;
     pid_t pid_;
 };
 
-Subprocess::Subprocess(std::function<void()> func) : cb_(func)
+Subprocess::Subprocess(std::string name, std::function<void()> func)
+    : name_(std::move(name)), cb_(func)
 {
     pid_ = fork();
     if (pid_ == -1) {
@@ -126,26 +130,67 @@ Subprocess::Subprocess(std::function<void()> func) : cb_(func)
         stdout_.close_write();
         return;
     }
-    if (-1 == dup2(stdin_.read_fd(), STDIN_FILENO)) {
-        throw std::system_error(errno, std::generic_category(), "dup2(stdin)");
+    try {
+        if (-1 == dup2(stdin_.read_fd(), STDIN_FILENO)) {
+            throw std::system_error(
+                errno, std::generic_category(), "dup2(stdin)");
+        }
+        if (-1 == dup2(stdout_.write_fd(), STDOUT_FILENO)) {
+            throw std::system_error(
+                errno, std::generic_category(), "dup2(stdout)");
+        }
+        stdin_.close();
+        stdout_.close();
+        func();
+        exit(EXIT_SUCCESS);
+    } catch (const std::exception& e) {
+        std::cerr << "Exception in subprocess: " << e.what() << "\n";
+        exit(EXIT_FAILURE);
     }
-    if (-1 == dup2(stdout_.write_fd(), STDOUT_FILENO)) {
-        throw std::system_error(errno, std::generic_category(), "dup2(stdout)");
+}
+
+bool Subprocess::wait()
+{
+    if (waited_) {
+        throw std::logic_error("can't happen: subprocess wait() called twice");
     }
-    stdin_.close();
-    stdout_.close();
-    func();
-    exit(EXIT_SUCCESS);
+
+    int st;
+    for (;;) {
+        const auto rc = waitpid(pid_, &st, 0);
+        if (rc > 0) {
+            break;
+        }
+
+        if (rc == 0) {
+            // Can't happen. We did not provide WNOHANG.
+            throw std::logic_error("can't happen: waitpid(" + name_ +
+                                   ") returned 0 without WNOHANG");
+        }
+
+        // Error case.
+
+        if (errno == EINTR) {
+            continue;
+        }
+
+        return false;
+    }
+    waited_ = true;
+
+    // Process exited. Check successful return.
+    if (WEXITSTATUS(st)) {
+        return false;
+    }
+    return true;
 }
 
 Subprocess::~Subprocess()
 {
-    int st;
-    if (-1 == waitpid(pid_, &st, 0)) {
-        std::cerr << "waitpid(): " << strerror(errno) << "\n";
-    }
-    if (WEXITSTATUS(st)) {
-        std::cerr << "subprocess failed\n";
+    if (!waited_) {
+        if (!wait()) {
+            std::cerr << "subprocess " << name_ << " failed\n";
+        }
     }
 }
 
@@ -154,7 +199,7 @@ Subprocess::~Subprocess()
 std::string pipe_openssl(const std::vector<std::string>& args,
                          const std::string& data)
 {
-    Subprocess openssl([&args] {
+    Subprocess openssl("openssl", [&args] {
         std::vector<const char*> av;
         av.push_back("openssl");
         for (const auto& a : args) {
@@ -166,7 +211,7 @@ std::string pipe_openssl(const std::vector<std::string>& args,
         exit(EXIT_FAILURE);
     });
 
-    Subprocess writer([&openssl, &data] {
+    Subprocess writer("openssl password writer", [&openssl, &data] {
         full_write(openssl.stdin().write_fd(), data.data(), data.size());
         exit(EXIT_SUCCESS);
     });
@@ -178,7 +223,7 @@ std::string pipe_openssl(const std::vector<std::string>& args,
         const auto rc =
             read(openssl.stdout().read_fd(), buf.data(), buf.size());
         if (rc == 0) {
-            return ret;
+            break;
         }
         if (rc == -1) {
             if (errno == EINTR || errno == EAGAIN) {
@@ -189,6 +234,13 @@ std::string pipe_openssl(const std::vector<std::string>& args,
         }
         ret += std::string(&buf[0], &buf[rc]);
     }
+    if (!writer.wait()) {
+        throw std::runtime_error("openssl writer failed");
+    }
+    if (!openssl.wait()) {
+        throw std::runtime_error("openssl failed");
+    }
+    return ret;
 }
 
 std::string encrypt_openssl(const std::string& data)
