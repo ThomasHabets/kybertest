@@ -15,7 +15,8 @@ namespace {
 void usage(const char* av0, int err)
 {
     auto o = (err == EXIT_SUCCESS) ? &std::cout : &std::cerr;
-    *o << "Usage: " << av0 << " [ -hP ] -o <file output base. E.g. 'key'>\n"
+    *o << "Usage: " << av0 << " [ -hLP ] -o <file output base. E.g. 'key'>\n"
+       << "    -L     Continue even if mlockall() fails\n"
        << "    -P     Store private key in plain text\n";
     exit(err);
 }
@@ -45,15 +46,18 @@ std::string make_header_priv_unencrypted() { return "KYBPRIV0"; }
 
 int mainwrap(int argc, char** argv)
 {
-    do_mlockall();
     std::string outbase;
     bool encrypt = true;
+    bool must_lock = true;
     {
         int opt;
         while ((opt = getopt(argc, argv, "hPo:")) != -1) {
             switch (opt) {
             case 'h':
                 usage(argv[0], EXIT_SUCCESS);
+            case 'L':
+                must_lock = false;
+                break;
             case 'o':
                 outbase = optarg;
                 break;
@@ -65,6 +69,7 @@ int mainwrap(int argc, char** argv)
             }
         }
     }
+    do_mlockall(must_lock);
 
     if (outbase.empty()) {
         std::cerr << "-o (output file base) is mandatory\n";

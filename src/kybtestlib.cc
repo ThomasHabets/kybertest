@@ -350,10 +350,14 @@ extern "C" void randombytes(uint8_t* out, size_t outlen)
     }
 }
 
-void do_mlockall()
+void do_mlockall(bool must)
 {
     if (mlockall(MCL_CURRENT | MCL_FUTURE)) {
-        throw std::system_error(errno, std::generic_category(), "mlockall()");
+        if (must) {
+            throw std::system_error(
+                errno, std::generic_category(), "mlockall()");
+        }
+        std::cerr << "WARNING: mlockall() failed: " << strerror(errno) << "\n";
     }
 }
 

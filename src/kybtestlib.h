@@ -22,7 +22,7 @@ private:
     int& fd_;
 };
 
-void do_mlockall();
+void do_mlockall(bool must);
 void full_read(const int fd, void* buf, const size_t count);
 void full_write(const int fd, const void* buf, const size_t count);
 std::string encrypt_openssl(const std::string& data);

@@ -76,28 +76,33 @@ std::pair<std::string, encrypted_skey_t> read_header(int fd)
 void usage(const char* av0, int err)
 {
     auto o = (err == EXIT_SUCCESS) ? &std::cout : &std::cerr;
-    *o << "Usage: " << av0 << " [ -h ] -k <keyfile>\n";
+    *o << "Usage: " << av0 << " [ -hL ] -k <keyfile>\n"
+       << "    -L     Continue even if mlockall() fails\n";
     exit(err);
 }
 
 int mainwrap(int argc, char** argv)
 {
-    do_mlockall();
     std::string privfn;
+    bool must_lock = true;
     {
         int opt;
-        while ((opt = getopt(argc, argv, "hk:")) != -1) {
+        while ((opt = getopt(argc, argv, "hLk:")) != -1) {
             switch (opt) {
             case 'h':
                 usage(argv[0], EXIT_SUCCESS);
             case 'k':
                 privfn = optarg;
                 break;
+            case 'L':
+                must_lock = false;
+                break;
             default:
                 usage(argv[0], EXIT_FAILURE);
             }
         }
     }
+    do_mlockall(must_lock);
 
     if (privfn.empty()) {
         std::cerr << "-k (recipient privkey) is mandatory\n";

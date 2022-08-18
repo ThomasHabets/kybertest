@@ -47,28 +47,33 @@ pubkey_t read_pub_key(const std::string& fn)
 void usage(const char* av0, int err)
 {
     auto o = (err == EXIT_SUCCESS) ? &std::cout : &std::cerr;
-    *o << "Usage: " << av0 << " [ -h ] -r <recipient pubkey file>\n";
+    *o << "Usage: " << av0 << " [ -hL ] -r <recipient pubkey file>\n"
+       << "    -L     Continue even if mlockall() fails\n";
     exit(err);
 }
 
 int mainwrap(int argc, char** argv)
 {
-    do_mlockall();
     std::string pubfn;
+    bool must_lock = true;
     {
         int opt;
-        while ((opt = getopt(argc, argv, "hr:")) != -1) {
+        while ((opt = getopt(argc, argv, "hLr:")) != -1) {
             switch (opt) {
             case 'h':
                 usage(argv[0], EXIT_SUCCESS);
             case 'r':
                 pubfn = optarg;
                 break;
+            case 'L':
+                must_lock = false;
+                break;
             default:
                 usage(argv[0], EXIT_FAILURE);
             }
         }
     }
+    do_mlockall(must_lock);
 
     if (pubfn.empty()) {
         std::cerr << "-r (recipient pubkey) is mandatory\n";
