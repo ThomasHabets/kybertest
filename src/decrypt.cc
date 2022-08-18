@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <system_error>
 #include <unistd.h>
 #include <array>
 #include <cassert>
