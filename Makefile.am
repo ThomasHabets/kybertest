@@ -2,6 +2,10 @@ AUTOMAKE_OPTIONS=foreign
 DISTCLEANFILES=*~
 AM_CPPFLAGS=-I$(builddir)
 
+EXTRA_DIST=\
+src/misc.h \
+src/kybtestlib.h
+
 bin_PROGRAMS=\
 kybertest_encrypt \
 kybertest_decrypt \
