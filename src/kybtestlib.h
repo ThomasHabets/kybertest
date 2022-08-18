@@ -1,7 +1,6 @@
 // -*- c++ -*-
 #include "misc.h"
 
-#include <sys/random.h>
 #include <array>
 #include <cinttypes>
 #include <string>

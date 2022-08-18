@@ -18,7 +18,7 @@
 #include <stdexcept>
 #include <vector>
 
-#ifdef HAVE_SYS_RANDOM
+#ifdef HAVE_SYS_RANDOM_H
 #include <sys/random.h>
 #endif
 
