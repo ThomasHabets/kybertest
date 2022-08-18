@@ -48,7 +48,11 @@ AC_CHECK_HEADERS([\
 sys/random.h \
 ])
 
-CXXFLAGS="$CXXFLAGS -std=c++17 -g -Wall -pedantic"
+MYSTD="c++17"
+if test ! "x$STD" = "x"; then
+   MYSTD="$STD"
+fi
+CXXFLAGS="$CXXFLAGS -std=$MYSTD -g -Wall -pedantic"
 
 # Output
 AC_CONFIG_FILES([Makefile])
