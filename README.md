@@ -29,23 +29,39 @@ Reasons to not trust the kybertest layer:
 * One algorithm only. Kyber 1024 and AES-256-CBC in the first version.
 * No compression. If the user wants to compress the input it's up to
   them, using their favourite tool.
-  
-## How to use it
 
-```
-./keygen -o mykey
-cat secret.txt | gpg -e -r somebody@example.com | ./encrypt -r mykey.pub > secret.txt.gpg.kyb
-cat secret.txt.gpg.kyb | ./decrypt -k mykey.priv | gpg -d > secret2.txt
-```
+## Installing
 
-## Installing dependency
+### Installing dependency
 
 ```
 git clone https://github.com/pq-crystals/kyber
 cd kyber/ref
 make shared
-mkdir -p ~/opt/kyber/lib
-cp *.so ~/opt/kyber/lib
+cp *.so /usr/local/lib
+```
+
+### Building
+
+```
+./bootstrap.sh  # Only needed if taking source from git repo, not .tar.gz.
+./configure
+make
+sudo make install
+```
+
+If you have the kyber library dependency in another directory then try e.g.:
+
+```
+./configure PQLIBPATH=$HOME/opt/kyber/lib
+```
+
+## How to use it
+
+```
+kybertest_keygen -o mykey
+cat secret.txt | gpg -e -r somebody@example.com | kybertest_encrypt -r mykey.pub > secret.txt.gpg.kyb
+cat secret.txt.gpg.kyb | kybertest_decrypt -k mykey.priv | gpg -d > secret2.txt
 ```
 
 ## File formats

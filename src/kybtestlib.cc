@@ -1,4 +1,9 @@
+#include "config.h"
+#include "kybtestlib.h"
+
+#include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <system_error>
@@ -13,7 +18,9 @@
 #include <stdexcept>
 #include <vector>
 
-#include "kybtestlib.h"
+#ifdef HAVE_SYS_RANDOM
+#include <sys/random.h>
+#endif
 
 void full_write(const int fd, const void* buf, const size_t count)
 {
@@ -301,12 +308,36 @@ void run_openssl(const std::vector<std::string>& args, const plain_skey_t& pass)
     }
 }
 
+namespace {
+#ifdef HAVE_GETRANDOM
+ssize_t xgetrandom(void* buf, size_t buflen, unsigned int flags)
+{
+    return getrandom(buf, buflen, flags);
+}
+#else
+
+#ifndef GRND_RANDOM
+#define GRND_RANDOM 0
+#endif
+ssize_t xgetrandom(void* buf, size_t buflen, unsigned int flags)
+{
+    int fd = open("/dev/random", O_RDONLY);
+    AutoCloser cfd(fd);
+    if (fd == -1) {
+        return -1;
+    }
+    full_read(fd, buf, buflen);
+    return buflen;
+}
+#endif
+} // namespace
+
 extern "C" void randombytes(uint8_t* out, size_t outlen)
 {
     auto p = out;
     ssize_t left = outlen;
     for (;;) {
-        const auto rc = getrandom(p, left, GRND_RANDOM);
+        const auto rc = xgetrandom(p, left, GRND_RANDOM);
         if (rc == -1) {
             throw std::system_error(
                 errno, std::generic_category(), "getrandom()");

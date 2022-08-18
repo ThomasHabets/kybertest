@@ -1,6 +1,7 @@
 /**
  * Encrypt
  */
+#include "config.h"
 #include "kybtestlib.h"
 
 #include <fcntl.h>
