@@ -1,6 +1,6 @@
 # -*- Autoconf -*-
 AC_PREREQ([2.71])
-AC_INIT([kybertest],[0.1.0],[thomas@habets.se])
+AC_INIT([kybertest],[0.1.1],[thomas@habets.se])
 AC_CONFIG_SRCDIR([src/encrypt.cc])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AM_MAINTAINER_MODE
