@@ -66,7 +66,7 @@ cat secret.txt.gpg.kyb | kybertest_decrypt -k mykey.priv | gpg -d > secret2.txt
 
 ## File formats
 
-### Encrypted data file format
+### Encrypted data file format: Version 0
 
 First `KYBTEST0` signifying the version 0 format.
 
@@ -79,6 +79,10 @@ if encrypted like so:
 `openssl aes-256-cbc -pbkdf2 -pass pass:$(convert_to_hex $AES_KEY)`
 
 (but obviously not with key material on the command line)
+
+### Encrypted data file format: Version 1
+
+See [`doc/file_format_1.md`](doc/file_format_1.md).
 
 ### Public key file format
 

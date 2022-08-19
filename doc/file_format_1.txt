@@ -1,0 +1,64 @@
+# Encrypted data file format: Version 1
+
+Status: Beta
+
+## How to test:
+
+Provide `-F 1` to `kybertest_encrypt`.
+
+`kybertest_decrypt` autodetects.
+
+## Design goals
+
+* Authenticated encryption. (GCM)
+* Streamable. (need to split into blocks)
+  * Blocks not reorderable
+* End of file marker, to detect truncated files. TODO: not done!
+
+## Format
+
+### Header: 8 bytes.
+
+`KYBTEST1`
+
+### Encrypted AES key: 1568 bytes
+
+This is the Kyber output of encrypting 32 bytes.
+
+### IV: 32 bytes
+
+Generated using `getrandom()`.
+
+### Bulk data
+
+Bulk data is encrypted using AES-256-GCM in 10kB (10'000 bytes)
+blocks.
+
+#### Block format:
+
+Payload (10kB) encrypted using IV XORed with the block index, followed
+by the 16 byte tag.
+
+Payload is prepended with a zero byte for plaintext data, and 0x01 for
+end of file.
+
+### Pseudocode
+
+```
+write "KYBTEST1"
+let [plain_key, encrypted_key] = generate_key();
+write encrypted_key
+let root_iv = generate_iv()
+write root_iv
+
+let counter = 0
+loop {
+  let data = read_10kb()
+  let block_iv = sha256(root_iv xor counter)
+  let block = aes_256_gcm(key, block_iv, data)
+  write block
+  counter++
+}
+let block = aes_256_gcm(key, block_iv)
+write block
+```

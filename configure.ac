@@ -18,6 +18,8 @@ if test ! "x$PQLIBPATH" = "x"; then
 fi
 
 # Check for libraries.
+AC_CHECK_LIB([crypto], [EVP_CIPHER_CTX_new])
+AC_CHECK_LIB([pqcrystals_sha2_ref], [pqcrystals_sha2_ref_sha256])
 AC_CHECK_LIB(
 	[pqcrystals_fips202_ref],
 	[pqcrystals_kyber_fips202_ref_shake256],,

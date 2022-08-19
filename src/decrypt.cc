@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include "gcm.h"
 #include "kybtestlib.h"
 
 #include <fcntl.h>
@@ -125,7 +126,33 @@ int mainwrap(int argc, char** argv)
         std::cerr << "Failed decryption\n";
         return 1;
     }
-    run_openssl({ "aes-256-cbc", "-d", "-pbkdf2" }, pt);
+    if (head == "KYBTEST0") {
+        run_openssl({ "aes-256-cbc", "-d", "-pbkdf2" }, pt);
+    } else if (head == "KYBTEST1") {
+        if (0 > kybertest_gcm::decrypt_stream(
+                    pt,
+                    file_version_1::blocksize,
+                    [](size_t size) -> auto{
+                        std::vector<char> buf(size);
+                        const auto rc =
+                            read(STDIN_FILENO, buf.data(), buf.size());
+                        if (rc >= 0) {
+                            buf.resize(rc);
+                        }
+                        return std::make_pair(
+                            std::string(buf.begin(), buf.end()), rc);
+                    },
+                    [](std::string_view sv) -> auto{
+                        full_write(STDOUT_FILENO, sv.data(), sv.size());
+                        return sv.size();
+                    })) {
+            std::cerr << "Bulk decryption failed\n";
+            return 1;
+        }
+    } else {
+        std::cerr << "Bad header\n";
+        return 1;
+    }
     return 0;
 }
 } // namespace

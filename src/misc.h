@@ -2,6 +2,7 @@
 // needs. Can probably be cleaned up a lot, since we're only using one
 // cipher.
 
+#include <cstddef>
 #include <cstdint>
 
 #define KYBER_K 4
@@ -73,4 +74,7 @@ int pqcrystals_kyber768_ref_enc(uint8_t* ct, uint8_t* ss, const uint8_t* sk);
 int pqcrystals_kyber768_ref_dec(uint8_t* ss,
                                 const uint8_t* ct,
                                 const uint8_t* sk);
+void pqcrystals_sha2_ref_sha256(uint8_t out[32],
+                                const uint8_t* in,
+                                size_t inlen);
 }

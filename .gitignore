@@ -31,3 +31,7 @@ kybertest_decrypt
 kybertest_encrypt
 kybertest_keygen
 *.asc
+*.log
+gcm_test
+*.trs
+scratch
