@@ -76,6 +76,11 @@ int mainwrap(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+    if (optind != argc) {
+        std::cerr << "Extra args on command line\n";
+        return EXIT_FAILURE;
+    }
+
     pubkey_t pk;
     secret_key_t sk;
     if (crypto_kem_keypair(pk.data(), sk.data())) {

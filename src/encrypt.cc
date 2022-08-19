@@ -97,6 +97,11 @@ int mainwrap(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+    if (optind != argc) {
+        std::cerr << "Extra args on command line\n";
+        return EXIT_FAILURE;
+    }
+
     const auto pk = read_pub_key(pubfn);
     plain_skey_t pt;
     encrypted_skey_t ct;

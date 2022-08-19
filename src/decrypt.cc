@@ -110,6 +110,11 @@ int mainwrap(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+    if (optind != argc) {
+        std::cerr << "Extra args on command line\n";
+        return EXIT_FAILURE;
+    }
+
     const auto sk = read_priv_key(privfn);
     if (sk.size() != CRYPTO_SECRETKEYBYTES) {
         std::cerr << "Priv file has wrong size. Want " << CRYPTO_SECRETKEYBYTES
