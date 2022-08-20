@@ -1,6 +1,7 @@
 // -*- c++ -*-
 #include "kybtestlib.h"
 
+#include <string_view>
 #include <array>
 #include <functional>
 #include <optional>
@@ -34,6 +35,7 @@ public:
     IV(const iv_t& iv) : iv_(iv) {}
 
     iv_t& get() { return iv_; }
+    const iv_t& get() const { return iv_; }
     void mix(uint64_t counter);
 
 private:
@@ -46,6 +48,15 @@ std::optional<v8> decrypt(const std::string_view ciphertext,
                           const key_t& key,
                           const iv_t& iv,
                           const tag_t& tag);
+
+v8 encrypt_block(const key_t& key,
+                 const std::string_view plain,
+                 const uint64_t counter,
+                 IV iv);
+std::optional<v8> decrypt_block(const key_t& key,
+                                const std::string_view data,
+                                const uint64_t counter,
+                                IV iv);
 
 ssize_t encrypt_stream(
     const key_t& key,

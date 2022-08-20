@@ -18,29 +18,8 @@
 
 namespace {
 
-secret_key_t read_priv_key(const std::string& fn)
+std::string read_rest(int fd, const std::string& fn)
 {
-    int fd = open(fn.c_str(), O_RDONLY);
-    if (-1 == fd) {
-        throw std::system_error(
-            errno, std::generic_category(), "open(" + fn + ")");
-    }
-    AutoCloser cfd(fd);
-
-    std::vector<char> h(8);
-    full_read(fd, h.data(), h.size());
-
-    // Check for unencrypted key.
-    if (std::string(h.begin(), h.end()) == "KYBPRIV0") {
-        secret_key_t priv;
-        full_read(fd, priv.data(), priv.size());
-        return priv;
-    }
-
-    if (std::string(h.begin(), h.end()) != "KYBSECe0") {
-        throw std::runtime_error("priv key has bad header");
-    }
-
     std::string rest;
     for (;;) {
         std::array<char, 1024> buf;
@@ -54,14 +33,56 @@ secret_key_t read_priv_key(const std::string& fn)
         }
         rest += std::string(&buf[0], &buf[rc]);
     }
+    return rest;
+}
 
-    const auto data = decrypt_openssl(rest);
-    secret_key_t priv;
-    if (data.size() != priv.size()) {
-        throw std::runtime_error("priv key has bad size");
+secret_key_t read_priv_key(const std::string& fn)
+{
+    int fd = open(fn.c_str(), O_RDONLY);
+    if (-1 == fd) {
+        throw std::system_error(
+            errno, std::generic_category(), "open(" + fn + ")");
     }
-    std::copy(data.begin(), data.end(), priv.begin());
-    return priv;
+    AutoCloser cfd(fd);
+
+    std::vector<char> h(8);
+    full_read(fd, h.data(), h.size());
+    auto h2 = kybertest_gcm::to_sv(h);
+
+    // Check for unencrypted key.
+    if (h2 == "KYBPRIV0") {
+        secret_key_t priv;
+        full_read(fd, priv.data(), priv.size());
+        return priv;
+    }
+
+    if (h2 == "KYBSECe0") {
+        const auto rest = read_rest(fd, fn);
+        const auto data = decrypt_openssl(rest);
+        secret_key_t priv;
+        if (data.size() != priv.size()) {
+            throw std::runtime_error("priv key has bad size");
+        }
+        std::copy(data.begin(), data.end(), priv.begin());
+        return priv;
+    }
+
+    if (h2 == "KYBSECe1") {
+        using namespace kybertest_gcm;
+        iv_t iv;
+        kybertest_gcm::key_t key = xgetpasskey("Private key password: ");
+        full_read(fd, iv.data(), iv.size());
+        const auto rest = read_rest(fd, fn);
+        const auto sec = decrypt_block(key, rest, 0, iv).value();
+        secret_key_t priv;
+        if (sec.size() != priv.size()) {
+            throw std::runtime_error("priv key has bad size");
+        }
+        std::copy(sec.begin(), sec.end(), priv.begin());
+        return priv;
+    }
+
+    throw std::runtime_error("priv key has bad header" + std::string(h2));
 }
 
 std::pair<std::string, encrypted_skey_t> read_header(int fd)

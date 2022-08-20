@@ -1,4 +1,5 @@
 #include "config.h"
+#include "gcm.h"
 #include "kybtestlib.h"
 
 #include <fcntl.h>
@@ -15,6 +16,7 @@ namespace {
 void usage(const char* av0, int err)
 {
     auto o = (err == EXIT_SUCCESS) ? &std::cout : &std::cerr;
+    // -F deliberately not documented.
     *o << "Usage: " << av0 << " [ -hLP ] -o <file output base. E.g. 'key'>\n"
        << "    -L     Continue even if mlockall() fails\n"
        << "    -P     Store private key in plain text\n";
@@ -38,21 +40,30 @@ void write_file(const std::string& fn, const std::string& content, int mode)
     fd = -1;
 }
 
-std::string make_header_pub() { return "KYBPUB00"; }
-
+namespace file_version_0 {
 std::string make_header_priv() { return "KYBSECe0"; }
+} // namespace file_version_0
 
+namespace file_version_1 {
+std::string make_header_priv() { return "KYBSECe1"; }
+} // namespace file_version_1
+
+std::string make_header_pub() { return "KYBPUB00"; }
 std::string make_header_priv_unencrypted() { return "KYBPRIV0"; }
 
 int mainwrap(int argc, char** argv)
 {
     std::string outbase;
     bool encrypt = true;
+    int file_version = 0;
     bool must_lock = true;
     {
         int opt;
-        while ((opt = getopt(argc, argv, "hPo:")) != -1) {
+        while ((opt = getopt(argc, argv, "F:hPo:")) != -1) {
             switch (opt) {
+            case 'F':
+                file_version = atoi(optarg);
+                break;
             case 'h':
                 usage(argv[0], EXIT_SUCCESS);
             case 'L':
@@ -93,8 +104,27 @@ int mainwrap(int argc, char** argv)
     std::string head = make_header_priv_unencrypted();
     std::string data = std::string(sk.begin(), sk.end());
     if (encrypt) {
-        head = make_header_priv();
-        data = encrypt_openssl(data);
+        if (file_version == 0) {
+            head = file_version_0::make_header_priv();
+            data = encrypt_openssl(data);
+        } else if (file_version == 1) {
+            using namespace kybertest_gcm;
+            head = file_version_1::make_header_priv();
+            const kybertest_gcm::key_t key =
+                xgetpasskey("Private key password: ");
+            const auto again = xgetpasskey("Again: ");
+            if (to_sv(key) != to_sv(again)) {
+                std::cerr << "Password mismatch.\n";
+                return EXIT_FAILURE;
+            }
+            const IV iv;
+            const auto enc = encrypt_block(key, data, 0, iv);
+            data = std::string(to_sv(iv.get())) +
+                   std::string(enc.begin(), enc.end());
+        } else {
+            std::cerr << "Unknown file version.\n";
+            return EXIT_FAILURE;
+        }
     }
     write_file(outbase + ".priv", head + data, 0600);
     return 0;

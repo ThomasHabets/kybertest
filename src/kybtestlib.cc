@@ -392,3 +392,17 @@ AutoCloser::~AutoCloser()
         fd_ = -1;
     }
 }
+
+sha256_output_t xgetpasskey(const std::string& prompt)
+{
+    const auto pass = getpass(prompt.c_str());
+    if (pass == nullptr) {
+        throw std::system_error(errno, std::generic_category(), "getpass()");
+    }
+    const std::string passs = pass;
+    sha256_output_t ret;
+    pqcrystals_sha2_ref_sha256(ret.data(),
+                               reinterpret_cast<const uint8_t*>(passs.data()),
+                               passs.size());
+    return ret;
+}

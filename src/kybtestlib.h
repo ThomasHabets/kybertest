@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+using sha256_output_t = std::array<unsigned char, 32>;
 using pubkey_t = std::array<uint8_t, CRYPTO_PUBLICKEYBYTES>;
 using secret_key_t = std::array<uint8_t, CRYPTO_SECRETKEYBYTES>;
 using encrypted_skey_t = std::array<uint8_t, CRYPTO_CIPHERTEXTBYTES>;
@@ -28,6 +29,7 @@ private:
     int& fd_;
 };
 
+sha256_output_t xgetpasskey(const std::string& prompt);
 void do_mlockall(bool must);
 void full_read(const int fd, void* buf, const size_t count);
 void full_write(const int fd, const void* buf, const size_t count);

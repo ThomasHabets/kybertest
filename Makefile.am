@@ -33,5 +33,6 @@ src/decrypt.cc
 
 kybertest_keygen_SOURCES=\
 src/kybtestlib.cc \
+src/gcm.cc \
 src/keygen.cc
 

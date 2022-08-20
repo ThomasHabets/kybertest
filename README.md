@@ -101,3 +101,7 @@ similar to payload, described above.
 `openssl aes-256-cbc -pbkdf2 -pass pass:$PASSPHRASE`
 
 (but obviously not with key material on the command line)
+
+The private key v1 format is described [with the encrypted file
+format](doc/file_format_1.md), where the whole encrypted material is
+just one block.

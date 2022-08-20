@@ -1,6 +1,4 @@
 *~
-*.pub
-*.priv
 decrypt
 encrypt
 keygen
@@ -24,8 +22,6 @@ stamp-h1
 test-driver
 install-sh
 config.status
-*.priv
-*.pub
 *.gpg
 kybertest_decrypt
 kybertest_encrypt
