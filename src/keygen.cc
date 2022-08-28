@@ -41,15 +41,18 @@ void write_file(const std::string& fn, const std::string& content, int mode)
 }
 
 namespace file_version_0_keygen {
-std::string make_header_priv() { return "KYBSECe0"; }
+std::string make_header_priv() { return file_version_0::magic_priv; }
 } // namespace file_version_0_keygen
 
 namespace file_version_1_keygen {
-std::string make_header_priv() { return "KYBSECe1"; }
+std::string make_header_priv() { return file_version_1_beta::magic_priv; }
 } // namespace file_version_1_keygen
 
-std::string make_header_pub() { return "KYBPUB00"; }
-std::string make_header_priv_unencrypted() { return "KYBPRIV0"; }
+std::string make_header_pub() { return file_version_0::magic_pub; }
+std::string make_header_priv_unencrypted()
+{
+    return file_version_0::magic_priv_unencrypted;
+}
 
 } // namespace
 

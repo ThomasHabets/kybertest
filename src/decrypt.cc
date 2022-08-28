@@ -56,13 +56,13 @@ secret_key_t read_priv_key(const std::string& fn)
     auto h2 = kybertest_gcm::to_sv(h);
 
     // Check for unencrypted key.
-    if (h2 == "KYBPRIV0") {
+    if (h2 == file_version_0::magic_priv_unencrypted) {
         secret_key_t priv;
         full_read(fd, priv.data(), priv.size());
         return priv;
     }
 
-    if (h2 == "KYBSECe0") {
+    if (h2 == file_version_0::magic_priv) {
         const auto rest = read_rest(fd, fn);
         const auto data = decrypt_openssl(rest);
         secret_key_t priv;
@@ -73,7 +73,7 @@ secret_key_t read_priv_key(const std::string& fn)
         return priv;
     }
 
-    if (h2 == "KYBSECe1") {
+    if (h2 == file_version_1_beta::magic_priv) {
         using namespace kybertest_gcm;
         iv_t iv;
         kybertest_gcm::key_t key = xgetpasskey("Private key password: ");
@@ -88,7 +88,7 @@ secret_key_t read_priv_key(const std::string& fn)
         return priv;
     }
 
-    throw std::runtime_error("priv key has bad header" + std::string(h2));
+    throw std::runtime_error("priv key has bad header " + std::string(h2));
 }
 
 std::pair<std::string, encrypted_skey_t> read_header(int fd)
@@ -159,12 +159,12 @@ int mainwrap(int argc, char** argv)
         std::cerr << "Failed decryption\n";
         return 1;
     }
-    if (head == "KYBTEST0") {
+    if (head == file_version_0::magic) {
         run_openssl({ "aes-256-cbc", "-d", "-pbkdf2" }, pt);
-    } else if (head == "KYBTEST1") {
+    } else if (head == file_version_1_beta::magic) {
         if (0 > kybertest_gcm::decrypt_stream(
                     pt,
-                    file_version_1::blocksize,
+                    file_version_1_beta::blocksize,
                     [](size_t size) -> auto{
                         std::vector<char> buf(size);
                         const auto rc =

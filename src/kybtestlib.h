@@ -15,9 +15,18 @@ using secret_key_t = std::array<uint8_t, CRYPTO_SECRETKEYBYTES>;
 using encrypted_skey_t = std::array<uint8_t, CRYPTO_CIPHERTEXTBYTES>;
 using plain_skey_t = std::array<uint8_t, CRYPTO_BYTES>;
 
-namespace file_version_1 {
+namespace file_version_0 {
+const std::string magic = "KYBTEST0";
+const std::string magic_priv = "KYBSECe0";
+const std::string magic_pub = "KYBPUB00";
+const std::string magic_priv_unencrypted = "KYBPRIV0";
+} // namespace file_version_0
+
+namespace file_version_1_beta {
+const std::string magic_priv = "KYbSECe1";
+const std::string magic = "KYbTEST1";
 constexpr int blocksize = 10000;
-}
+} // namespace file_version_1_beta
 
 class AutoCloser
 {

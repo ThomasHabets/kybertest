@@ -30,8 +30,8 @@ namespace {
 namespace file_version_0_encrypt {
 void write_header(int fd, const encrypted_skey_t& key)
 {
-    const std::string head = "KYBTEST0";
-    full_write(fd, head.data(), head.size());
+    using file_version_0::magic;
+    full_write(fd, magic.data(), magic.size());
     full_write(fd, key.data(), key.size());
 }
 } // namespace file_version_0_encrypt
@@ -39,8 +39,8 @@ void write_header(int fd, const encrypted_skey_t& key)
 namespace file_version_1_encrypt {
 void write_header(int fd, const encrypted_skey_t& key)
 {
-    const std::string head = "KYBTEST1";
-    full_write(fd, head.data(), head.size());
+    using file_version_1_beta::magic;
+    full_write(fd, magic.data(), magic.size());
     full_write(fd, key.data(), key.size());
 }
 } // namespace file_version_1_encrypt
@@ -56,7 +56,7 @@ pubkey_t read_pub_key(const std::string& fn)
 
     std::vector<char> h(8);
     full_read(fd, h.data(), h.size());
-    if (std::string(h.begin(), h.end()) != "KYBPUB00") {
+    if (std::string(h.begin(), h.end()) != file_version_0::magic_pub) {
         throw std::runtime_error("pubkey has bad header");
     }
     pubkey_t pub;
@@ -127,7 +127,7 @@ int mainwrap(int argc, char** argv)
         file_version_1_encrypt::write_header(STDOUT_FILENO, ct);
         if (0 > kybertest_gcm::encrypt_stream(
                     pt,
-                    file_version_1::blocksize,
+                    file_version_1_beta::blocksize,
                     [](size_t size) -> auto{
                         std::vector<char> buf(size);
                         const auto rc =
