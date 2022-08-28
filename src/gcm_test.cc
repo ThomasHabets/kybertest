@@ -87,8 +87,9 @@ void test_stream()
 }
 } // namespace kybertest_gcm
 
-int main()
+int mainwrap(int argc, char** argv)
 {
     kybertest_gcm::test_raw();
     kybertest_gcm::test_stream();
+    return 0;
 }

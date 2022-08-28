@@ -40,16 +40,18 @@ void write_file(const std::string& fn, const std::string& content, int mode)
     fd = -1;
 }
 
-namespace file_version_0 {
+namespace file_version_0_keygen {
 std::string make_header_priv() { return "KYBSECe0"; }
-} // namespace file_version_0
+} // namespace file_version_0_keygen
 
-namespace file_version_1 {
+namespace file_version_1_keygen {
 std::string make_header_priv() { return "KYBSECe1"; }
-} // namespace file_version_1
+} // namespace file_version_1_keygen
 
 std::string make_header_pub() { return "KYBPUB00"; }
 std::string make_header_priv_unencrypted() { return "KYBPRIV0"; }
+
+} // namespace
 
 int mainwrap(int argc, char** argv)
 {
@@ -105,11 +107,11 @@ int mainwrap(int argc, char** argv)
     std::string data = std::string(sk.begin(), sk.end());
     if (encrypt) {
         if (file_version == 0) {
-            head = file_version_0::make_header_priv();
+            head = file_version_0_keygen::make_header_priv();
             data = encrypt_openssl(data);
         } else if (file_version == 1) {
             using namespace kybertest_gcm;
-            head = file_version_1::make_header_priv();
+            head = file_version_1_keygen::make_header_priv();
             const kybertest_gcm::key_t key =
                 xgetpasskey("Private key password: ");
             const auto again = xgetpasskey("Again: ");
@@ -128,15 +130,4 @@ int mainwrap(int argc, char** argv)
     }
     write_file(outbase + ".priv", head + data, 0600);
     return 0;
-}
-} // namespace
-
-int main(int argc, char** argv)
-{
-    try {
-        return mainwrap(argc, argv);
-    } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << "\n";
-        exit(EXIT_FAILURE);
-    }
 }

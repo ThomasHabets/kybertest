@@ -1,3 +1,9 @@
+/**
+ * Decrypt binary.
+ *
+ * Supports version 0 and 1beta, and will continue to support older
+ * versions.
+ */
 #include "config.h"
 
 #include "gcm.h"
@@ -102,6 +108,7 @@ void usage(const char* av0, int err)
        << "    -L     Continue even if mlockall() fails\n";
     exit(err);
 }
+} // namespace
 
 int mainwrap(int argc, char** argv)
 {
@@ -180,15 +187,4 @@ int mainwrap(int argc, char** argv)
         return 1;
     }
     return 0;
-}
-} // namespace
-
-int main(int argc, char** argv)
-{
-    try {
-        return mainwrap(argc, argv);
-    } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << "\n";
-        exit(EXIT_FAILURE);
-    }
 }

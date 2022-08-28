@@ -1,5 +1,13 @@
 /**
- * Encrypt
+ * Encrypt binary.
+ *
+ * Supports the latest stable file format, and any beta.
+ *
+ * When the next version becomes stable, it will drop ability to
+ * encrypt to previous version.
+ *
+ * encrypt to previous version, in order to keep the code simple and
+ * secure.
  */
 #include "config.h"
 #include "gcm.h"
@@ -19,23 +27,23 @@
 #include <vector>
 
 namespace {
-namespace file_version_0 {
+namespace file_version_0_encrypt {
 void write_header(int fd, const encrypted_skey_t& key)
 {
     const std::string head = "KYBTEST0";
     full_write(fd, head.data(), head.size());
     full_write(fd, key.data(), key.size());
 }
-} // namespace file_version_0
+} // namespace file_version_0_encrypt
 
-namespace file_version_1 {
+namespace file_version_1_encrypt {
 void write_header(int fd, const encrypted_skey_t& key)
 {
     const std::string head = "KYBTEST1";
     full_write(fd, head.data(), head.size());
     full_write(fd, key.data(), key.size());
 }
-} // namespace file_version_1
+} // namespace file_version_1_encrypt
 
 pubkey_t read_pub_key(const std::string& fn)
 {
@@ -64,6 +72,7 @@ void usage(const char* av0, int err)
        << "    -L     Continue even if mlockall() fails\n";
     exit(err);
 }
+} // namespace
 
 int mainwrap(int argc, char** argv)
 {
@@ -112,13 +121,13 @@ int mainwrap(int argc, char** argv)
         return 1;
     }
     if (file_version == 0) {
-        file_version_0::write_header(STDOUT_FILENO, ct);
+        file_version_0_encrypt::write_header(STDOUT_FILENO, ct);
         run_openssl({ "aes-256-cbc", "-pbkdf2" }, pt);
     } else if (file_version == 1) {
-        file_version_1::write_header(STDOUT_FILENO, ct);
+        file_version_1_encrypt::write_header(STDOUT_FILENO, ct);
         if (0 > kybertest_gcm::encrypt_stream(
                     pt,
-                    ::file_version_1::blocksize,
+                    file_version_1::blocksize,
                     [](size_t size) -> auto{
                         std::vector<char> buf(size);
                         const auto rc =
@@ -138,15 +147,4 @@ int mainwrap(int argc, char** argv)
         }
     }
     return 0;
-}
-} // namespace
-
-int main(int argc, char** argv)
-{
-    try {
-        return mainwrap(argc, argv);
-    } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << "\n";
-        exit(EXIT_FAILURE);
-    }
 }
