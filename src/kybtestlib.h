@@ -42,8 +42,8 @@ sha256_output_t xgetpasskey(const std::string& prompt);
 void do_mlockall(bool must);
 void full_read(const int fd, void* buf, const size_t count);
 void full_write(const int fd, const void* buf, const size_t count);
-std::string encrypt_openssl(const std::string& data);
-std::string decrypt_openssl(const std::string& data);
+std::string encrypt_openssl(const std::string_view data);
+std::string decrypt_openssl(const std::string_view data);
 void run_openssl(const std::vector<std::string>& args,
                  const plain_skey_t& pass);
 extern "C" void randombytes(uint8_t* out, size_t outlen);

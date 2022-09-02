@@ -26,6 +26,8 @@
 #include <sstream>
 #include <vector>
 
+using kybertest_gcm::to_sv;
+
 namespace {
 namespace file_version_0_encrypt {
 void write_header(int fd, const encrypted_skey_t& key)
@@ -45,6 +47,7 @@ void write_header(int fd, const encrypted_skey_t& key)
 }
 } // namespace file_version_1_encrypt
 
+// takes std::string because we need to know it's nullterminated.
 pubkey_t read_pub_key(const std::string& fn)
 {
     int fd = open(fn.c_str(), O_RDONLY);
@@ -56,7 +59,7 @@ pubkey_t read_pub_key(const std::string& fn)
 
     std::vector<char> h(8);
     full_read(fd, h.data(), h.size());
-    if (std::string(h.begin(), h.end()) != file_version_0::magic_pub) {
+    if (to_sv(h) != file_version_0::magic_pub) {
         throw std::runtime_error("pubkey has bad header");
     }
     pubkey_t pub;
@@ -135,6 +138,8 @@ int mainwrap(int argc, char** argv)
                         if (rc >= 0) {
                             buf.resize(rc);
                         }
+                        // TODO: with a better interface maybe we
+                        // could avoid this copy.
                         return std::make_pair(
                             std::string(buf.begin(), buf.end()), rc);
                     },

@@ -24,15 +24,16 @@
 
 namespace {
 
-std::string read_rest(int fd, const std::string& fn)
+std::string read_rest(int fd, const std::string_view fn)
 {
     std::string rest;
     for (;;) {
         std::array<char, 1024> buf;
         const auto rc = read(fd, buf.data(), buf.size());
         if (rc == -1) {
-            throw std::system_error(
-                errno, std::generic_category(), "read(" + fn + ")");
+            throw std::system_error(errno,
+                                    std::generic_category(),
+                                    "read(" + std::string(fn) + ")");
         }
         if (rc == 0) {
             break;
@@ -42,6 +43,7 @@ std::string read_rest(int fd, const std::string& fn)
     return rest;
 }
 
+// takes std::string because we need to know it's nullterminated.
 secret_key_t read_priv_key(const std::string& fn)
 {
     int fd = open(fn.c_str(), O_RDONLY);
@@ -172,6 +174,8 @@ int mainwrap(int argc, char** argv)
                         if (rc >= 0) {
                             buf.resize(rc);
                         }
+                        // TODO: with a better interface maybe we
+                        // could avoid this copy.
                         return std::make_pair(
                             std::string(buf.begin(), buf.end()), rc);
                     },

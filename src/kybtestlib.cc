@@ -204,7 +204,7 @@ Subprocess::~Subprocess()
 
 // TODO: kill subprocess on failure.
 std::string pipe_openssl(const std::vector<std::string>& args,
-                         const std::string& data)
+                         const std::string_view data)
 {
     Subprocess openssl("openssl", [&args] {
         std::vector<const char*> av;
@@ -250,12 +250,12 @@ std::string pipe_openssl(const std::vector<std::string>& args,
     return ret;
 }
 
-std::string encrypt_openssl(const std::string& data)
+std::string encrypt_openssl(const std::string_view data)
 {
     return pipe_openssl({ "aes-256-cbc", "-pbkdf2" }, data);
 }
 
-std::string decrypt_openssl(const std::string& data)
+std::string decrypt_openssl(const std::string_view data)
 {
     return pipe_openssl({ "aes-256-cbc", "-pbkdf2", "-d" }, data);
 }
@@ -395,6 +395,8 @@ AutoCloser::~AutoCloser()
 
 sha256_output_t xgetpasskey(const std::string& prompt)
 {
+    // TODO: manpage says this function is obsolete, and one should do
+    // it manually instead.
     const auto pass = getpass(prompt.c_str());
     if (pass == nullptr) {
         throw std::system_error(errno, std::generic_category(), "getpass()");

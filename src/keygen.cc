@@ -23,7 +23,8 @@ void usage(const char* av0, int err)
     exit(err);
 }
 
-void write_file(const std::string& fn, const std::string& content, int mode)
+// takes std::string because we need to know it's nullterminated.
+void write_file(const std::string& fn, const std::string_view content, int mode)
 {
     int fd = open(fn.c_str(), O_CREAT | O_EXCL | O_WRONLY, mode);
     if (-1 == fd) {
@@ -107,7 +108,7 @@ int mainwrap(int argc, char** argv)
                make_header_pub() + std::string(pk.begin(), pk.end()),
                0644);
     std::string head = make_header_priv_unencrypted();
-    std::string data = std::string(sk.begin(), sk.end());
+    std::string data(sk.begin(), sk.end());
     if (encrypt) {
         if (file_version == 0) {
             head = file_version_0_keygen::make_header_priv();
