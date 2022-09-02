@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -e
 
+export ASAN_OPTIONS=detect_stack_use_after_return=1:abort_on_error=1
+#:fast_unwind_on_malloc=0:detect_leaks=0
+
+make clean || true
+./bootstrap.sh
+./configure \
+    PQLIBPATH="$HOME/opt/kyber/lib" \
+    STD=c++17 \
+    CXXFLAGS="-fsanitize=address -fsanitize=undefined"
 make -j
 make check
 rm -f scratch/*
