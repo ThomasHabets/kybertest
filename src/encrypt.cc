@@ -81,7 +81,7 @@ int mainwrap(int argc, char** argv)
 {
     std::string pubfn;
     bool must_lock = true;
-    int file_version = 0;
+    int file_version = 1;
     {
         int opt;
         while ((opt = getopt(argc, argv, "F:hLr:")) != -1) {

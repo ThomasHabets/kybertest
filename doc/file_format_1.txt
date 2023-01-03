@@ -2,6 +2,8 @@
 
 Status: Beta
 
+This deprecates version 0.
+
 ## How to test:
 
 Provide `-F 1` to `kybertest_encrypt`.
@@ -62,3 +64,8 @@ loop {
 let block = aes_256_gcm(key, block_iv)
 write block
 ```
+
+## Private key
+
+The private key v1 format the same, where the whole encrypted material
+is just one block.

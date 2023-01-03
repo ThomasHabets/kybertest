@@ -61,7 +61,7 @@ int mainwrap(int argc, char** argv)
 {
     std::string outbase;
     bool encrypt = true;
-    int file_version = 0;
+    int file_version = 1;
     bool must_lock = true;
     {
         int opt;

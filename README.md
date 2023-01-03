@@ -18,15 +18,11 @@ Reasons to not trust the kybertest layer:
   stuff, and is assembling crypto primitives like Kyber and AES.
 * Kyber (and all other PQ algorithms) is not as analyzed as
   traditional crypto like RSA.
-* There is no authentication of decrypted data. Corrupt/interfered
-  ciphertext will produce corrupt/interfered output. (this should be
-  fixable before 1.0)
-* CBC is not the greatest mode in the first place. (also fixable)
 * TODO: add more reasons
 
 ## Deliberate design decisions
 
-* One algorithm only. Kyber 1024 and AES-256-CBC in the first version.
+* One algorithm only. Kyber 1024 and AES-256-GCM in the first version.
 * No compression. If the user wants to compress the input it's up to
   them, using their favourite tool.
 
@@ -66,20 +62,6 @@ cat secret.txt.gpg.kyb | kybertest_decrypt -k mykey.priv | gpg -d > secret2.txt
 
 ## File formats
 
-### Encrypted data file format: Version 0
-
-First `KYBTEST0` signifying the version 0 format.
-
-Then the encrypted AES key. The AES key is only 32 bytes, but with
-Kyber 1024 that encrypts to 1568 bytes.
-
-Then comes the payload, encrypted with the AES key, using openssl, as
-if encrypted like so:
-
-`openssl aes-256-cbc -pbkdf2 -pass pass:$(convert_to_hex $AES_KEY)`
-
-(but obviously not with key material on the command line)
-
 ### Encrypted data file format: Version 1
 
 See [`doc/file_format_1.md`](doc/file_format_1.md).
@@ -87,21 +69,4 @@ See [`doc/file_format_1.md`](doc/file_format_1.md).
 ### Public key file format
 
 Public keys are just the header `KYBPUB00` for the version `0` format,
-followed by the raw key material.
-
-### Private key file format
-
-Private keys are either encrypted or not. If not then it's just
-`KYBPRIV0` followed by the key material, like the public keys.
-
-For encrypted private keys the header is `KYBSECe0`, followed by the
-encrypted private key. The private key is encrypted with openssl
-similar to payload, described above.
-
-`openssl aes-256-cbc -pbkdf2 -pass pass:$PASSPHRASE`
-
-(but obviously not with key material on the command line)
-
-The private key v1 format is described [with the encrypted file
-format](doc/file_format_1.md), where the whole encrypted material is
-just one block.
+followed by the raw public key material.
