@@ -16,7 +16,9 @@
 #include <unistd.h>
 #include <array>
 #include <cassert>
+#include <cstring>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -115,11 +117,15 @@ void usage(const char* av0, int err)
 int mainwrap(int argc, char** argv)
 {
     std::string privfn;
+    std::string inputfile = "-";
     bool must_lock = true;
     {
         int opt;
-        while ((opt = getopt(argc, argv, "hLk:")) != -1) {
+        while ((opt = getopt(argc, argv, "f:hLk:")) != -1) {
             switch (opt) {
+            case 'f':
+                inputfile = optarg;
+                break;
             case 'h':
                 usage(argv[0], EXIT_SUCCESS);
             case 'k':
@@ -134,6 +140,21 @@ int mainwrap(int argc, char** argv)
         }
     }
     do_mlockall(must_lock);
+
+    if (inputfile != "-") {
+        const int input_fd = open(inputfile.c_str(), O_RDONLY);
+        if (input_fd < 0) {
+            std::cerr << argv[0] << ": Failed to open "
+                      << std::quoted(inputfile) << ": " << strerror(errno)
+                      << " \n";
+            exit(1);
+        }
+        if (dup2(input_fd, STDIN_FILENO) < 0) {
+            std::cerr << argv[0] << ": Failed to open "
+                      << std::quoted(inputfile) << ": " << strerror(errno)
+                      << " \n";
+        }
+    }
 
     if (privfn.empty()) {
         std::cerr << "-k (recipient privkey) is mandatory\n";
