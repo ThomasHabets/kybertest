@@ -28,6 +28,12 @@ const std::string magic = "KYbTEST1";
 constexpr int blocksize = 10000;
 } // namespace file_version_1_beta
 
+namespace file_version_1 {
+const std::string magic_priv = "KYBSECe1";
+const std::string magic = "KYBTEST1";
+constexpr int blocksize = 10000;
+} // namespace file_version_1
+
 class AutoCloser
 {
 public:

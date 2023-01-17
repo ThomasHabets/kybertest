@@ -29,19 +29,11 @@
 using kybertest_gcm::to_sv;
 
 namespace {
-namespace file_version_0_encrypt {
-void write_header(int fd, const encrypted_skey_t& key)
-{
-    using file_version_0::magic;
-    full_write(fd, magic.data(), magic.size());
-    full_write(fd, key.data(), key.size());
-}
-} // namespace file_version_0_encrypt
 
 namespace file_version_1_encrypt {
 void write_header(int fd, const encrypted_skey_t& key)
 {
-    using file_version_1_beta::magic;
+    using file_version_1::magic;
     full_write(fd, magic.data(), magic.size());
     full_write(fd, key.data(), key.size());
 }
@@ -123,14 +115,11 @@ int mainwrap(int argc, char** argv)
         std::cerr << "Encryption of session key failed\n";
         return 1;
     }
-    if (file_version == 0) {
-        file_version_0_encrypt::write_header(STDOUT_FILENO, ct);
-        run_openssl({ "aes-256-cbc", "-pbkdf2" }, pt);
-    } else if (file_version == 1) {
+    if (file_version == 1) {
         file_version_1_encrypt::write_header(STDOUT_FILENO, ct);
         if (0 > kybertest_gcm::encrypt_stream(
                     pt,
-                    file_version_1_beta::blocksize,
+                    file_version_1::blocksize,
                     [](size_t size) -> auto{
                         std::vector<char> buf(size);
                         const auto rc =

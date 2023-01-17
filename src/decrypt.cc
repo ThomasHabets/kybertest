@@ -182,9 +182,11 @@ int mainwrap(int argc, char** argv)
         std::cerr << "Failed decryption\n";
         return 1;
     }
+
     if (head == file_version_0::magic) {
         run_openssl({ "aes-256-cbc", "-d", "-pbkdf2" }, pt);
-    } else if (head == file_version_1_beta::magic) {
+    } else if (head == file_version_1_beta::magic ||
+               head == file_version_1::magic) {
         if (0 > kybertest_gcm::decrypt_stream(
                     pt,
                     file_version_1_beta::blocksize,
@@ -208,7 +210,7 @@ int mainwrap(int argc, char** argv)
             return 1;
         }
     } else {
-        std::cerr << "Bad header\n";
+        std::cerr << argv[0] << ": Bad header\n";
         return 1;
     }
     return 0;
