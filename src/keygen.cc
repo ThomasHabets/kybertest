@@ -41,12 +41,8 @@ void write_file(const std::string& fn, const std::string_view content, int mode)
     fd = -1;
 }
 
-namespace file_version_0_keygen {
-std::string make_header_priv() { return file_version_0::magic_priv; }
-} // namespace file_version_0_keygen
-
 namespace file_version_1_keygen {
-std::string make_header_priv() { return file_version_1_beta::magic_priv; }
+std::string make_header_priv() { return file_version_1::magic_priv; }
 } // namespace file_version_1_keygen
 
 std::string make_header_pub() { return file_version_0::magic_pub; }
@@ -110,10 +106,7 @@ int mainwrap(int argc, char** argv)
     std::string head = make_header_priv_unencrypted();
     std::string data(sk.begin(), sk.end());
     if (encrypt) {
-        if (file_version == 0) {
-            head = file_version_0_keygen::make_header_priv();
-            data = encrypt_openssl(data);
-        } else if (file_version == 1) {
+        if (file_version == 1) {
             using namespace kybertest_gcm;
             head = file_version_1_keygen::make_header_priv();
             const kybertest_gcm::key_t key =

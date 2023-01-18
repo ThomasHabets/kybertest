@@ -77,7 +77,8 @@ secret_key_t read_priv_key(const std::string& fn)
         return priv;
     }
 
-    if (h2 == file_version_1_beta::magic_priv) {
+    if (h2 == file_version_1_beta::magic_priv ||
+        h2 == file_version_1::magic_priv) {
         using namespace kybertest_gcm;
         iv_t iv;
         kybertest_gcm::key_t key = xgetpasskey("Private key password: ");
