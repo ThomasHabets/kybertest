@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -e
+
+while [[ "$1" != "" ]]; do
+    FILE="$1"
+    shift
+    MAGIC="$(head -c 8 "${FILE?}")"
+
+    case "${MAGIC?}" in
+	KYBTEST0)
+	    MSG="Encrypted file version 0"
+	    ;;
+	KYbTEST1)
+	    MSG="Encrypted file version 1 BETA"
+	    ;;
+	KYBTEST1)
+	    MSG="Encrypted file version 1"
+	    ;;
+	KYBPUB00)
+	    MSG="Public key format version 0"
+	    ;;
+	KYBPRIV0)
+	    MSG="Unencrypted private key format version 0"
+	    ;;
+	KYBSECe0)
+	    MSG="Encrypted private key format version 0"
+	    ;;
+	KYbSECe1)
+	    MSG="Encrypted private key format version 1 BETA"
+	    ;;
+	KYBSECe1)
+	    MSG="Encrypted private key format version 1"
+	    ;;
+	*)
+	    MSG="Unknown header"
+	    ;;
+    esac
+    echo -e "${FILE?}:\t${MSG?}"
+done
