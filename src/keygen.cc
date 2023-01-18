@@ -121,7 +121,7 @@ int mainwrap(int argc, char** argv)
             data = std::string(to_sv(iv.get())) +
                    std::string(enc.begin(), enc.end());
         } else {
-            std::cerr << "Unknown file version.\n";
+            std::cerr << "Unknown file version " << file_version << "\n";
             return EXIT_FAILURE;
         }
     }

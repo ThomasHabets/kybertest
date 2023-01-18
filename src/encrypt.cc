@@ -51,6 +51,11 @@ pubkey_t read_pub_key(const std::string& fn)
 
     std::vector<char> h(8);
     full_read(fd, h.data(), h.size());
+    if (to_sv(h) == file_version_0::magic_priv ||
+        to_sv(h) == file_version_1_beta::magic_priv ||
+        to_sv(h) == file_version_1::magic_priv) {
+        throw std::runtime_error("encryption needs pubkey, got privkey");
+    }
     if (to_sv(h) != file_version_0::magic_pub) {
         throw std::runtime_error("pubkey has bad header");
     }
