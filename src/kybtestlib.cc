@@ -1,4 +1,5 @@
 #include "config.h"
+#include "gcm.h"
 #include "kybtestlib.h"
 
 #include <fcntl.h>
@@ -407,4 +408,74 @@ sha256_output_t xgetpasskey(const std::string& prompt)
                                reinterpret_cast<const uint8_t*>(passs.data()),
                                passs.size());
     return ret;
+}
+
+std::string read_rest(int fd, const std::string_view fn)
+{
+    std::string rest;
+    for (;;) {
+        std::array<char, 1024> buf;
+        const auto rc = read(fd, buf.data(), buf.size());
+        if (rc == -1) {
+            throw std::system_error(errno,
+                                    std::generic_category(),
+                                    "read(" + std::string(fn) + ")");
+        }
+        if (rc == 0) {
+            break;
+        }
+        rest += std::string(&buf[0], &buf[rc]);
+    }
+    return rest;
+}
+
+// takes std::string because we need to know it's nullterminated.
+secret_key_t read_priv_key(const std::string& fn)
+{
+    int fd = open(fn.c_str(), O_RDONLY);
+    if (-1 == fd) {
+        throw std::system_error(
+            errno, std::generic_category(), "open(" + fn + ")");
+    }
+    AutoCloser cfd(fd);
+
+    std::vector<char> h(8);
+    full_read(fd, h.data(), h.size());
+    auto h2 = kybertest_gcm::to_sv(h);
+
+    // Check for unencrypted key.
+    if (h2 == file_version_0::magic_priv_unencrypted) {
+        secret_key_t priv;
+        full_read(fd, priv.data(), priv.size());
+        return priv;
+    }
+
+    if (h2 == file_version_0::magic_priv) {
+        const auto rest = read_rest(fd, fn);
+        const auto data = decrypt_openssl(rest);
+        secret_key_t priv;
+        if (data.size() != priv.size()) {
+            throw std::runtime_error("priv key has bad size");
+        }
+        std::copy(data.begin(), data.end(), priv.begin());
+        return priv;
+    }
+
+    if (h2 == file_version_1_beta::magic_priv ||
+        h2 == file_version_1::magic_priv) {
+        using namespace kybertest_gcm;
+        iv_t iv;
+        kybertest_gcm::key_t key = xgetpasskey("Private key password: ");
+        full_read(fd, iv.data(), iv.size());
+        const auto rest = read_rest(fd, fn);
+        const auto sec = decrypt_block(key, rest, 0, iv).value();
+        secret_key_t priv;
+        if (sec.size() != priv.size()) {
+            throw std::runtime_error("priv key has bad size");
+        }
+        std::copy(sec.begin(), sec.end(), priv.begin());
+        return priv;
+    }
+
+    throw std::runtime_error("priv key has bad header " + std::string(h2));
 }

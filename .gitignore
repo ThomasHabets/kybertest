@@ -31,3 +31,7 @@ kybertest_keygen
 gcm_test
 *.trs
 scratch
+testdata/testkey_v1_key0.priv
+testdata/testkey_v1_key0.pub
+testdata/testkey_v1_key1.priv
+testdata/testkey_v1_key1.pub

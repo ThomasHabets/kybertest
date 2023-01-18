@@ -17,9 +17,11 @@ void usage(const char* av0, int err)
 {
     auto o = (err == EXIT_SUCCESS) ? &std::cout : &std::cerr;
     // -F deliberately not documented.
-    *o << "Usage: " << av0 << " [ -hLP ] -o <file output base. E.g. 'key'>\n"
-       << "    -L     Continue even if mlockall() fails\n"
-       << "    -P     Store private key in plain text\n";
+    *o << "Usage: " << av0
+       << " [ -hLP ] <-u priv> -o <file output base. E.g. 'key'>\n"
+       << "    -L         Continue even if mlockall() fails\n"
+       << "    -P         Store private key in plain text\n"
+       << "    -u <priv>  Upgrade privkey file to latest version\n";
     exit(err);
 }
 
@@ -59,9 +61,10 @@ int mainwrap(int argc, char** argv)
     bool encrypt = true;
     int file_version = 1;
     bool must_lock = true;
+    std::string upgrade;
     {
         int opt;
-        while ((opt = getopt(argc, argv, "F:hPo:")) != -1) {
+        while ((opt = getopt(argc, argv, "F:hPo:u:")) != -1) {
             switch (opt) {
             case 'F':
                 file_version = atoi(optarg);
@@ -73,6 +76,9 @@ int mainwrap(int argc, char** argv)
                 break;
             case 'o':
                 outbase = optarg;
+                break;
+            case 'u':
+                upgrade = optarg;
                 break;
             case 'P':
                 encrypt = false;
@@ -94,15 +100,20 @@ int mainwrap(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    pubkey_t pk;
     secret_key_t sk;
-    if (crypto_kem_keypair(pk.data(), sk.data())) {
-        std::cerr << "Key generation failed\n";
-        return 1;
+    if (upgrade.empty()) {
+        pubkey_t pk;
+        if (crypto_kem_keypair(pk.data(), sk.data())) {
+            std::cerr << "Key generation failed\n";
+            return 1;
+        }
+        write_file(outbase + ".pub",
+                   make_header_pub() + std::string(pk.begin(), pk.end()),
+                   0644);
+    } else {
+        sk = read_priv_key(upgrade);
     }
-    write_file(outbase + ".pub",
-               make_header_pub() + std::string(pk.begin(), pk.end()),
-               0644);
+
     std::string head = make_header_priv_unencrypted();
     std::string data(sk.begin(), sk.end());
     if (encrypt) {
