@@ -19,6 +19,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <openssl/evp.h>
+
 #ifdef HAVE_SYS_RANDOM_H
 #include <sys/random.h>
 #endif
@@ -394,6 +396,25 @@ AutoCloser::~AutoCloser()
     }
 }
 
+sha256_output_t sha256(const uint8_t* data, size_t len)
+{
+    sha256_output_t out{};
+    unsigned int out_len = out.size();
+
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    if (!ctx) throw std::runtime_error("EVP_MD_CTX_new failed");
+
+    const EVP_MD* md = EVP_sha256();
+    if (EVP_DigestInit_ex(ctx, md, nullptr) != 1 ||
+        EVP_DigestUpdate(ctx, data, len) != 1 ||
+        EVP_DigestFinal_ex(ctx, out.data(), &out_len) != 1) {
+        EVP_MD_CTX_free(ctx);
+        throw std::runtime_error("EVP digest failed");
+    }
+    EVP_MD_CTX_free(ctx);
+    return out;
+}
+
 sha256_output_t xgetpasskey(const std::string& prompt)
 {
     // TODO: manpage says this function is obsolete, and one should do
@@ -403,11 +424,8 @@ sha256_output_t xgetpasskey(const std::string& prompt)
         throw std::system_error(errno, std::generic_category(), "getpass()");
     }
     const std::string passs = pass;
-    sha256_output_t ret;
-    pqcrystals_sha2_ref_sha256(ret.data(),
-                               reinterpret_cast<const uint8_t*>(passs.data()),
-                               passs.size());
-    return ret;
+    return sha256(reinterpret_cast<const uint8_t*>(passs.data()),
+                       passs.size());
 }
 
 std::string read_rest(int fd, const std::string_view fn)

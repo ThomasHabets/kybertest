@@ -44,6 +44,7 @@ private:
     int& fd_;
 };
 
+sha256_output_t sha256(const uint8_t* data, size_t len);
 sha256_output_t xgetpasskey(const std::string& prompt);
 void do_mlockall(bool must);
 void full_read(const int fd, void* buf, const size_t count);

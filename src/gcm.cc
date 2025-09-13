@@ -62,8 +62,7 @@ void IV::mix(uint64_t counter)
     }
 
     // Hash the IV to not create a bitwise difference in IV across blocks.
-    std::array<unsigned char, 32> buf;
-    pqcrystals_sha2_ref_sha256(buf.data(), iv_.data(), iv_.size());
+    const auto buf = sha256(iv_.data(), iv_.size());
     std::copy(buf.begin(), buf.end(), iv_.data());
 }
 
