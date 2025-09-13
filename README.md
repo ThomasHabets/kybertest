@@ -30,10 +30,13 @@ Reasons to not trust the kybertest layer:
 
 ### Installing dependency
 
+Dependency seems a bit unstable, but it works at this commit.
+
 ```
 git clone https://github.com/pq-crystals/kyber
 cd kyber/ref
-make shared
+git checkout -f b628ba78711bc28327dc7d2d5c074a00f061884e
+make -j$(nproc) shared
 cp *.so /usr/local/lib
 ```
 
