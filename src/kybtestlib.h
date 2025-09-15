@@ -34,6 +34,18 @@ const std::string magic = "KYBTEST1";
 constexpr int blocksize = 10000;
 } // namespace file_version_1
 
+// File version 2 is just like file version 1, but with a post NIST meddling
+// Kyber standard.
+//
+// See https://github.com/pq-crystals/kyber/issues/105
+//
+// TODO: actually implement this for encrypt and keygen.
+namespace file_version_2 {
+const std::string magic_priv = "KYBSECe2";
+const std::string magic = "KYBTEST2";
+constexpr int blocksize = 10000;
+} // namespace file_version_2
+
 class AutoCloser
 {
 public:
