@@ -55,4 +55,10 @@ void run_openssl(const std::vector<std::string>& args,
                  const plain_skey_t& pass);
 extern "C" void randombytes(uint8_t* out, size_t outlen);
 secret_key_t read_priv_key(const std::string& fn);
+enum class LibraryVersion {
+        Original,
+        FOTransform,
+};
+
+LibraryVersion library_version();
 #endif

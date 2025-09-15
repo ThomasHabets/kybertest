@@ -2,6 +2,7 @@
 #include "gcm.h"
 #include "kybtestlib.h"
 
+#include <cassert>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -496,4 +497,37 @@ secret_key_t read_priv_key(const std::string& fn)
     }
 
     throw std::runtime_error("priv key has bad header " + std::string(h2));
+}
+
+LibraryVersion library_version()
+{
+        extern std::array<uint8_t, KYBER_SECRETKEYBYTES> library_version_original_priv;
+        extern std::array<uint8_t, KYBER_SECRETKEYBYTES> library_version_original_ciphertext;
+        extern std::array<uint8_t, KYBER_SSBYTES> library_version_original_ss;
+        extern std::array<uint8_t, KYBER_SECRETKEYBYTES> library_version_fotransform_ciphertext;
+        extern std::array<uint8_t, KYBER_SSBYTES> library_version_fotransform_ss;
+        extern std::array<uint8_t, KYBER_PUBLICKEYBYTES> library_version_original_pub;
+        std::array<uint8_t, KYBER_SSBYTES> ss{};
+        if (false) {
+                std::array<uint8_t, KYBER_CIPHERTEXTBYTES> ct;
+                assert(!crypto_kem_enc(ct.data(), ss.data(), library_version_original_pub.data()));
+                {
+                        auto of = std::ofstream("ct.bin");
+                        of.write((char*)ct.data(), ct.size());
+                }
+                auto of = std::ofstream("ss.bin");
+                of.write((char*)ss.data(), ss.size());
+        }
+        std::array<uint8_t, KYBER_SSBYTES> decoded{};
+        if (0 == crypto_kem_dec(decoded.data(), library_version_original_ciphertext.data(), library_version_original_priv.data())) {
+                if (library_version_original_ss == decoded) {
+                        return LibraryVersion::Original;
+                }
+        }
+        if (0 == crypto_kem_dec(decoded.data(), library_version_fotransform_ciphertext.data(), library_version_original_priv.data())) {
+                if (library_version_fotransform_ss == decoded) {
+                        return LibraryVersion::FOTransform;
+                }
+        }
+        throw std::runtime_error("library failed in all versions");
 }

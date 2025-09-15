@@ -25,18 +25,24 @@ src/kybtestlib.cc
 kybertest_encrypt_SOURCES=\
 src/main.cc \
 src/kybtestlib.cc \
+src/version_original.cc \
+src/version_fotransform.cc \
 src/gcm.cc \
 src/encrypt.cc
 
 kybertest_decrypt_SOURCES=\
 src/main.cc \
 src/kybtestlib.cc \
+src/version_original.cc \
+src/version_fotransform.cc \
 src/gcm.cc \
 src/decrypt.cc
 
 kybertest_keygen_SOURCES=\
 src/main.cc \
 src/kybtestlib.cc \
+src/version_original.cc \
+src/version_fotransform.cc \
 src/gcm.cc \
 src/keygen.cc
 

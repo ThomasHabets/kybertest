@@ -35,9 +35,8 @@ Dependency seems a bit unstable, but it works at this commit.
 ```
 git clone https://github.com/pq-crystals/kyber
 cd kyber/ref
-git checkout -f b628ba78711bc28327dc7d2d5c074a00f061884e
 make -j$(nproc) shared
-cp *.so /usr/local/lib
+cp lib/*.so /usr/local/lib
 ```
 
 ### Building

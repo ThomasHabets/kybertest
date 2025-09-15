@@ -97,14 +97,29 @@ int mainwrap(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+    const auto [head, ct] = read_header(STDIN_FILENO);
+    if ((head == "KYBTEST1" || head == "KYBTEST0")
+                    && (LibraryVersion::Original != library_version())) {
+        std::cerr << "Kyber library is a new FOTransform version, but file was encrypted "
+                "with original version.\n"
+                "Build Kyber library at git commit 518de2414a85052bb91349bcbcc347f391292d5b "
+                "to be able to decrypt.\n";
+        return 1;
+    }
+    if (head == "KYBTEST2" && (LibraryVersion::FOTransform != library_version())) {
+        std::cerr << "Kyber library is a original version, but file was encrypted "
+                "with original version.\n"
+                "Build kyber pqlibrary at git commit 24f2e9c5955a187bb94d428cdbe293c46831c927 or newer "
+                "to be able to decrypt.\n";
+        return 1;
+    }
+
     const auto sk = read_priv_key(privfn);
     if (sk.size() != CRYPTO_SECRETKEYBYTES) {
         std::cerr << "Priv file has wrong size. Want " << CRYPTO_SECRETKEYBYTES
                   << " got " << sk.size() << "\n";
         return EXIT_FAILURE;
     }
-
-    const auto [head, ct] = read_header(STDIN_FILENO);
 
     plain_skey_t pt;
     if (crypto_kem_dec(pt.data(),
